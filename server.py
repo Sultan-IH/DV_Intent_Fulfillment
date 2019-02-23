@@ -2,14 +2,13 @@ import logging
 from uuid import uuid4 as uuid
 from dashbot import google
 from flask import Flask, request, jsonify, g
-import DASHBOT_API_KEY from credentials.py
-
 from intents.need_home import find_home
+from credentials import TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, MENTOR_DEFAULT_NUMBER, TWILIO_DEFAULT_NUMBER
+from twilio.rest import Client
 
 app = Flask(__name__)
 logger = logging.getLogger(__name__)
-dba = google.google(DASHBOT_API_KEY)
-paused_users = {}
+client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 
 @app.before_request
@@ -69,9 +68,32 @@ def df_webhook():
         house = find_home(location, date)
         msg = "we found a house at %s owned by %s to stay at %s" % (house['location'], house['name'], house['date'])
         return jsonify(fulfillmentText=msg)
+ 	if action == 'UrgentHome.UrgentHome-yes':
+
+        print("finding a home for " + str(g.req_id))
+        context = query['outputContexts'][0]
+        params = context['parameters']
+
+        date = params['date']
+        location = params['location']['subadmin-area']
+
+        house = find_home(location, date)
+        msg = "we found a house at %s owned by %s to stay at %s" % (house['location'], house['name'], house['date'])
+        return jsonify(fulfillmentText=msg)
+
+	message = client.messages.create(
+	    to=MENTOR_DEFAULT_NUMBER, 
+	    from_=TWILIO_DEFAULT_NUMBER,
+	    body="Hello from Python!")
 
 
     return jsonify(g.json)
+
+
+
+
+
+
 
 
 @app.route('/slack-integration', methods=['POST'])
