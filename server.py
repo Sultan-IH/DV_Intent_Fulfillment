@@ -1,32 +1,31 @@
 import logging
-from pprint import pprint
 from uuid import uuid4 as uuid
-
+from pprint import pprint
 from flask import Flask, request, jsonify, g
-
 from db_models import db
 from intents.need_home import find_home
 from sentiment import get_sentiment
+from credentials import TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, MENTOR_DEFAULT_NUMBER, TWILIO_DEFAULT_NUMBER
+from twilio.rest import Client
 
 app = Flask(__name__)
 logger = logging.getLogger(__name__)
+client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 peer_chatrooms = []
-mentor_chatrooms = []
 
 POSTGRES = {
     'user': 'cerber',
     'pw': 'papi',
     'db': 'paula',
     'host': 'localhost',
-    'port': '5432',
+    'port': '5432'
 }
 
 app.config['DEBUG'] = True
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
 %(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
 db.init_app(app)
-
 
 @app.before_request
 def preprocess():
@@ -56,6 +55,18 @@ def ping_route():
     return jsonify(success=True)
 
 
+@app.route("/pause")
+def pause_route():
+    logger.info("Paused " + str(g.req_id))
+    return jsonify(success=True)
+
+
+@app.route("/message")
+def pause_route():
+    logger.info("Paused " + str(g.req_id))
+    return jsonify(success=True)
+
+
 @app.route("/df_webhook", methods=['POST'])
 def df_webhook():
     print("serving request with id " + str(g.req_id))
@@ -78,6 +89,18 @@ def df_webhook():
         msg = "we found a house at %s owned by %s to stay at %s" % (house['location'], house['name'], house['date'])
 
         return jsonify(fulfillmentText=msg)
+ 	if action == 'UrgentHome.UrgentHome-yes':
+
+        print("finding a home for " + str(g.req_id))
+        context = query['outputContexts'][0]
+        params = context['parameters']
+
+        date = params['date']
+        location = params['location']['subadmin-area']
+
+        house = find_home(location, date)
+        msg = "we found a house at %s owned by %s to stay at %s" % (house['location'], house['name'], house['date'])
+        return jsonify(fulfillmentText=msg)
 
     if intent == "Companionship":
         # if no current chat room, create chat room
@@ -99,19 +122,18 @@ def df_webhook():
     if intent == "Mentorship":
         # if no current chat room, create chat room
 
-        if len(mentor_chatrooms) == 0:
-            uid = uuid()
-            mentor_chatrooms.append(uid)
-            url = "tlk.io/paula-" + str(uid)[:15]
-            msg = "we've created a chatroom " + url + " and we are waiting for a mentor to join, please follow the link"
-            return jsonify(fulfillmentText=msg)
-
-        uid = mentor_chatrooms[-1]
+        # if len(mentor_chatrooms) == 0:
+        uid = uuid()
         url = "tlk.io/paula-" + str(uid)[:15]
-        mentor_chatrooms.remove(uid)
+		message = client.messages.create(
+		    to=MENTOR_DEFAULT_NUMBER, 
+		    from_=TWILIO_DEFAULT_NUMBER,
+		    body="There is a person urgently in need. Please follow on to this chatroom: " + url + "!"
+		    )
 
-        msg = "we've matched you with one of our best mentors! Go to " + url
-        return jsonify(fulfillmentText=msg)
+        msg = "we've created a chatroom " + url + " and we are waiting for a mentor to join, please follow the link"
+	    return jsonify(fulfillmentText=msg)
+
 
     return jsonify(g.json)
 
