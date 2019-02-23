@@ -26,7 +26,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
 %(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
 db.init_app(app)
 
-
 @app.before_request
 def preprocess():
     logger.info('endpoint: %s, url: %s, path: %s' % (
@@ -127,9 +126,10 @@ def df_webhook():
 		message = client.messages.create(
 		    to=MENTOR_DEFAULT_NUMBER, 
 		    from_=TWILIO_DEFAULT_NUMBER,
-		    body="There is a person urgently in need. Please follow on to this chatroom: " +url + "!"
+		    body="There is a person urgently in need. Please follow on to this chatroom: " + url + "!"
 		    )
 	    return jsonify(fulfillmentText=msg)
+
     return jsonify(g.json)
 
 
