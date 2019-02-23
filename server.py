@@ -108,7 +108,7 @@ def df_webhook():
             return jsonify(fulfillmentText=msg)
 
         uid = peer_chatrooms[-1]
-        url = "tlk.io/paula-" + uid
+        url = "tlk.io/paula-" + str(uid)[:15]
         peer_chatrooms.remove(uid)
 
         msg = "we've matched you with someone you might like to talk to, go to " + url
