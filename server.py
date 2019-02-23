@@ -1,7 +1,7 @@
 import logging
 from uuid import uuid4 as uuid
-from flask import Flask, request, jsonify, g
 from pprint import pprint
+from flask import Flask, request, jsonify, g
 from db_models import db
 from intents.need_home import find_home
 from credentials import TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, MENTOR_DEFAULT_NUMBER, TWILIO_DEFAULT_NUMBER
@@ -32,6 +32,7 @@ def preprocess():
         request.endpoint,
         request.url,
         request.path))
+
     g.req_id = uuid()
 
     try:
@@ -99,7 +100,7 @@ def df_webhook():
 
     if intent == "Companionship":
         # if no current chat room, create chat room
-        if len(peer_chatrooms) ==0:
+        if len(peer_chatrooms) == 0:
             uid = uuid()
             peer_chatrooms.append(uid)
             url = "tlk.io/paula-" + str(uid)[:15]
@@ -119,16 +120,16 @@ def df_webhook():
 
         # if len(mentor_chatrooms) == 0:
         uid = uuid()
-        mentor_chatrooms.append(uid)
         url = "tlk.io/paula-" + str(uid)[:15]
-        msg = "we've created a chatroom " + url + " and we are waiting for a mentor to join, please follow the link"
-
 		message = client.messages.create(
 		    to=MENTOR_DEFAULT_NUMBER, 
 		    from_=TWILIO_DEFAULT_NUMBER,
 		    body="There is a person urgently in need. Please follow on to this chatroom: " + url + "!"
 		    )
+
+        msg = "we've created a chatroom " + url + " and we are waiting for a mentor to join, please follow the link"
 	    return jsonify(fulfillmentText=msg)
+
 
     return jsonify(g.json)
 
