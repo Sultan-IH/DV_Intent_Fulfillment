@@ -27,4 +27,4 @@ def get_sentiment(text, request_id):
         raise Exception("MSC returned unexpected status code " + resp.status_code + " expected 200")
 
     resp = resp.json()
-    return resp['documents']
+    return resp['documents'][0][]

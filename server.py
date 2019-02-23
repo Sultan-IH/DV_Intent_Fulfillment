@@ -1,6 +1,6 @@
 import logging
-from uuid import uuid4 as uuid
 from pprint import pprint
+from uuid import uuid4 as uuid
 
 from flask import Flask, request, jsonify, g
 
@@ -33,6 +33,7 @@ def preprocess():
         request.endpoint,
         request.url,
         request.path))
+
     g.req_id = uuid()
 
     try:
@@ -76,7 +77,7 @@ def df_webhook():
 
     if intent == "Companionship":
         # if no current chat room, create chat room
-        if len(peer_chatrooms) ==0:
+        if len(peer_chatrooms) == 0:
             uid = uuid()
             peer_chatrooms.append(uid)
             url = "tlk.io/paula-" + str(uid)[:15]
@@ -107,7 +108,6 @@ def df_webhook():
 
         msg = "we've matched you with one of our best mentors! Go to " + url
         return jsonify(fulfillmentText=msg)
-
 
     return jsonify(g.json)
 
