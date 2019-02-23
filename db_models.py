@@ -32,7 +32,7 @@ class UserInfo(BaseModel, db.Model):
     """Model for the stations table"""
     __tablename__ = 'User Information'
 
-    dialog_id = db.Column(db.Integer, primary_ke=True)
+    dialog_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     mobile = db.Column(db.String)
 

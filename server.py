@@ -1,19 +1,22 @@
 import logging
 from uuid import uuid4 as uuid
+from pprint import pprint
 
 from flask import Flask, request, jsonify, g
 
-from intents.need_home import find_home
-
 from db_models import db
+from intents.need_home import find_home
 
 app = Flask(__name__)
 logger = logging.getLogger(__name__)
 
+peer_chatrooms = []
+mentor_chatrooms = []
+
 POSTGRES = {
-    'user': 'postgres',
-    'pw': 'password',
-    'db': 'my_database',
+    'user': 'cerber',
+    'pw': 'papi',
+    'db': 'paula',
     'host': 'localhost',
     'port': '5432',
 }
@@ -55,11 +58,11 @@ def df_webhook():
         return jsonify(error="unknown request format")
 
     query = g.json['queryResult']
-    action = query['action']
-
-    if action == 'UrgentHome.UrgentHome-yes':
-
+    pprint(query)
+    intent = query['intent']['displayName']
+    if intent == 'Urgent Home - yes':
         print("finding a home for " + str(g.req_id))
+
         context = query['outputContexts'][0]
         params = context['parameters']
 
@@ -68,20 +71,48 @@ def df_webhook():
 
         house = find_home(location, date)
         msg = "we found a house at %s owned by %s to stay at %s" % (house['location'], house['name'], house['date'])
+
+        return jsonify(fulfillmentText=msg)
+
+    if intent == "Companionship":
+        # if no current chat room, create chat room
+        if len(peer_chatrooms) ==0:
+            uid = uuid()
+            peer_chatrooms.append(uid)
+            url = "tlk.io/paula-" + str(uid)[:15]
+            msg = "we've created a chatroom " + url + " and we are waiting for someone to join!"
+            return jsonify(fulfillmentText=msg)
+
+        uid = peer_chatrooms[-1]
+        url = "tlk.io/paula-" + uid
+        peer_chatrooms.remove(uid)
+
+        msg = "we've matched you with someone you might like to talk to, go to" + url
+        return jsonify(fulfillmentText=msg)
+
+        # if current chat room, connect and then clear current chat room
+    if intent == "Mentorship":
+        # if no current chat room, create chat room
+
+        if len(mentor_chatrooms) == 0:
+            uid = uuid()
+            mentor_chatrooms.append(uid)
+            url = "tlk.io/paula-" + str(uid)[:15]
+            msg = "we've created a chatroom " + url + " and we are waiting for a mentor to join, please follow the link"
+            return jsonify(fulfillmentText=msg)
+
+        uid = mentor_chatrooms[-1]
+        url = "tlk.io/paula-" + str(uid)[:15]
+        mentor_chatrooms.remove(uid)
+
+        msg = "we've matched you with one of our best mentors! Go to " + url
         return jsonify(fulfillmentText=msg)
 
 
     return jsonify(g.json)
 
 
-@app.route('/slack-integration', methods=['POST'])
-def slack_handler():
-    print("slack requests")
-    print(g.json)
-    return jsonify(g.json)
-
-
-@app.route('/dbtest',methods=['GET'])
+@app.route('/dbtest', methods=['GET'])
 def test_db():
     try:
         db.session.query("1").from_statement("SELECT 1").all()
