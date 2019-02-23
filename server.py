@@ -4,6 +4,8 @@ from dashbot import google
 from flask import Flask, request, jsonify, g
 import DASHBOT_API_KEY from credentials.py
 
+from intents.need_home import find_home
+
 app = Flask(__name__)
 logger = logging.getLogger(__name__)
 dba = google.google(DASHBOT_API_KEY)
@@ -16,13 +18,12 @@ def preprocess():
         request.endpoint,
         request.url,
         request.path))
-
     g.req_id = uuid()
 
     try:
         json = request.get_json()
-        logger.info("request json: " + str(json))
-        g.json = True
+        g.json = json
+        # g.sentiment = get_sentiment()
 
     except:
         print("can't marshall request body to json")
@@ -49,8 +50,32 @@ def pause_route():
 
 @app.route("/df_webhook", methods=['POST'])
 def df_webhook():
-    logger.info("serving request with id " + str(g.req_id))
-    json = request.get_json()
-    print("request json: " + str(json))
+    print("serving request with id " + str(g.req_id))
+    if not g.json:
+        return jsonify(error="unknown request format")
 
-    return jsonify({"fulfillmentText": "yeet indeed"})
+    query = g.json['queryResult']
+    action = query['action']
+
+    if action == 'UrgentHome.UrgentHome-yes':
+
+        print("finding a home for " + str(g.req_id))
+        context = query['outputContexts'][0]
+        params = context['parameters']
+
+        date = params['date']
+        location = params['location']['subadmin-area']
+
+        house = find_home(location, date)
+        msg = "we found a house at %s owned by %s to stay at %s" % (house['location'], house['name'], house['date'])
+        return jsonify(fulfillmentText=msg)
+
+
+    return jsonify(g.json)
+
+
+@app.route('/slack-integration', methods=['POST'])
+def slack_handler():
+    print("slack requests")
+    print(g.json)
+    return jsonify(g.json)
