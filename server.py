@@ -87,7 +87,7 @@ def df_webhook():
         url = "tlk.io/paula-" + uid
         peer_chatrooms.remove(uid)
 
-        msg = "we've matched you with someone you might like to talk to, go to" + url
+        msg = "we've matched you with someone you might like to talk to, go to " + url
         return jsonify(fulfillmentText=msg)
 
         # if current chat room, connect and then clear current chat room
