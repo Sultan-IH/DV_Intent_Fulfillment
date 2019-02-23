@@ -32,11 +32,12 @@ class UserInfo(BaseModel, db.Model):
     """Model for the stations table"""
     __tablename__ = 'User Information'
 
-    id = db.Column(db.Integer, primary_key = True)
+    dialog_id = db.Column(db.Integer, primary_ke=True)
     name = db.Column(db.String)
     mobile = db.Column(db.String)
 
-    def __init__(self, name, mobile):
+    def __init__(self, dialog_id, name, mobile):
+        self.dialog_id = dialog_id
         self.name = name
         self.mobile = mobile
 
