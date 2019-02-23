@@ -1,7 +1,8 @@
 import logging
 from uuid import uuid4 as uuid
-from dashbot import google
 from flask import Flask, request, jsonify, g
+from pprint import pprint
+from db_models import db
 from intents.need_home import find_home
 from credentials import TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, MENTOR_DEFAULT_NUMBER, TWILIO_DEFAULT_NUMBER
 from twilio.rest import Client
@@ -9,6 +10,21 @@ from twilio.rest import Client
 app = Flask(__name__)
 logger = logging.getLogger(__name__)
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+
+peer_chatrooms = []
+
+POSTGRES = {
+    'user': 'cerber',
+    'pw': 'papi',
+    'db': 'paula',
+    'host': 'localhost',
+    'port': '5432'
+}
+
+app.config['DEBUG'] = True
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
+%(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
+db.init_app(app)
 
 
 @app.before_request
@@ -54,11 +70,11 @@ def df_webhook():
         return jsonify(error="unknown request format")
 
     query = g.json['queryResult']
-    action = query['action']
-
-    if action == 'UrgentHome.UrgentHome-yes':
-
+    pprint(query)
+    intent = query['intent']['displayName']
+    if intent == 'Urgent Home - yes':
         print("finding a home for " + str(g.req_id))
+
         context = query['outputContexts'][0]
         params = context['parameters']
 
@@ -67,6 +83,7 @@ def df_webhook():
 
         house = find_home(location, date)
         msg = "we found a house at %s owned by %s to stay at %s" % (house['location'], house['name'], house['date'])
+
         return jsonify(fulfillmentText=msg)
  	if action == 'UrgentHome.UrgentHome-yes':
 
@@ -81,23 +98,45 @@ def df_webhook():
         msg = "we found a house at %s owned by %s to stay at %s" % (house['location'], house['name'], house['date'])
         return jsonify(fulfillmentText=msg)
 
-	message = client.messages.create(
-	    to=MENTOR_DEFAULT_NUMBER, 
-	    from_=TWILIO_DEFAULT_NUMBER,
-	    body="Hello from Python!")
+    if intent == "Companionship":
+        # if no current chat room, create chat room
+        if len(peer_chatrooms) ==0:
+            uid = uuid()
+            peer_chatrooms.append(uid)
+            url = "tlk.io/paula-" + str(uid)[:15]
+            msg = "we've created a chatroom " + url + " and we are waiting for someone to join!"
+            return jsonify(fulfillmentText=msg)
 
+        uid = peer_chatrooms[-1]
+        url = "tlk.io/paula-" + uid
+        peer_chatrooms.remove(uid)
 
+        msg = "we've matched you with someone you might like to talk to, go to " + url
+        return jsonify(fulfillmentText=msg)
+
+        # if current chat room, connect and then clear current chat room
+    if intent == "Mentorship":
+        # if no current chat room, create chat room
+
+        # if len(mentor_chatrooms) == 0:
+        uid = uuid()
+        mentor_chatrooms.append(uid)
+        url = "tlk.io/paula-" + str(uid)[:15]
+        msg = "we've created a chatroom " + url + " and we are waiting for a mentor to join, please follow the link"
+
+		message = client.messages.create(
+		    to=MENTOR_DEFAULT_NUMBER, 
+		    from_=TWILIO_DEFAULT_NUMBER,
+		    body="There is a person urgently in need. Please follow on to this chatroom: " +url + "!"
+		    )
+	    return jsonify(fulfillmentText=msg)
     return jsonify(g.json)
 
 
-
-
-
-
-
-
-@app.route('/slack-integration', methods=['POST'])
-def slack_handler():
-    print("slack requests")
-    print(g.json)
-    return jsonify(g.json)
+@app.route('/dbtest', methods=['GET'])
+def test_db():
+    try:
+        db.session.query("1").from_statement("SELECT 1").all()
+        return '<h1>DB works.</h1>'
+    except:
+        return '<h1>DB is broken.</h1>'
