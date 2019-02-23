@@ -6,6 +6,7 @@ from flask import Flask, request, jsonify, g
 
 from db_models import db
 from intents.need_home import find_home
+from sentiment import get_sentiment
 
 app = Flask(__name__)
 logger = logging.getLogger(__name__)
@@ -33,16 +34,19 @@ def preprocess():
         request.endpoint,
         request.url,
         request.path))
-
     g.req_id = uuid()
 
     try:
         json = request.get_json()
         g.json = json
+        sent_text = json['queryResult']['queryText']
+        sentiment = get_sentiment(sent_text, str(g.req_id))
+        g.sentiment = sentiment['score']
+        print("sentiment: ", g.sentiment)
         # g.sentiment = get_sentiment()
 
-    except:
-        print("can't marshall request body to json")
+    except Exception as e:
+        print("can't marshall request body to json, got e: ", e)
         g.json = False
 
 
