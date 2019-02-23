@@ -5,8 +5,23 @@ from flask import Flask, request, jsonify, g
 
 from intents.need_home import find_home
 
+from db_models import db
+
 app = Flask(__name__)
 logger = logging.getLogger(__name__)
+
+POSTGRES = {
+    'user': 'postgres',
+    'pw': 'password',
+    'db': 'my_database',
+    'host': 'localhost',
+    'port': '5432',
+}
+
+app.config['DEBUG'] = True
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
+%(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
+db.init_app(app)
 
 
 @app.before_request
@@ -64,3 +79,12 @@ def slack_handler():
     print("slack requests")
     print(g.json)
     return jsonify(g.json)
+
+
+@app.route('/dbtest',methods=['GET'])
+def test_db():
+    try:
+        db.session.query("1").from_statement("SELECT 1").all()
+        return '<h1>DB works.</h1>'
+    except:
+        return '<h1>DB is broken.</h1>'
