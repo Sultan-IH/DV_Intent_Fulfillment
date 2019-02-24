@@ -135,8 +135,14 @@ def df_webhook():
         context = query['outputContexts'][-1]
         params = context['parameters']
         subject = "OMG YOU GOTTA READ THIS"
-        message = "Hi %s %s, we are contacting you about %s"%(params["ref-given-name"],params["ref-last-name"],params["given-name"])
-        s.sendmail("vincnttan@gmail.com",params["ref-email"], 'Subject: {}\n\n{}'.format(subject, message))
+        message = "Hi %s %s, we are contacting you about %s" % (
+        params["ref-given-name"], params["ref-last-name"], params["given-name"])
+        s.sendmail("vincnttan@gmail.com", params["ref-email"], 'Subject: {}\n\n{}'.format(subject, message))
+
+        subject = 'New Request'
+        message = 'Dear DePaul, we have recieved a request by %s %s. These are the contact details: /nemail: %s /nphone number: %s'.format(
+            params["given-name"], params["last-name"], params['email'], params['phone-number'])
+        s.sendmail("vincnttan@gmail.com", params["ref-email"], 'Subject: {}\n\n{}'.format(subject, message))
         s.quit()
         msg = "Great, we've sent the referral!"
         return jsonify(fulfillmentText=msg)
