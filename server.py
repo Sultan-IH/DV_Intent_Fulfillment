@@ -5,8 +5,12 @@ from flask import Flask, request, jsonify, g
 from db_models import db
 from intents.need_home import find_home
 from sentiment import get_sentiment
-from credentials import TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, MENTOR_DEFAULT_NUMBER, TWILIO_DEFAULT_NUMBER
+from credentials import TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, MENTOR_DEFAULT_NUMBER, TWILIO_DEFAULT_NUMBER, GAPP_PASSWORD
 from twilio.rest import Client
+import time
+import smtplib
+
+
 
 app = Flask(__name__)
 logger = logging.getLogger(__name__)
@@ -21,6 +25,12 @@ POSTGRES = {
     'host': 'localhost',
     'port': '5432'
 }
+
+s = smtplib.SMTP('smtp.gmail.com',587)
+s.starttls()
+s.login("vincnttan@gmail.com",GAPP_PASSWORD)
+
+
 
 app.config['DEBUG'] = True
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
@@ -42,6 +52,8 @@ def preprocess():
         sentiment = get_sentiment(sent_text, str(g.req_id))
         g.sentiment = sentiment['score']
         print("sentiment: ", g.sentiment)
+        if (g.sentiment) < 0.01:
+            return
         # g.sentiment = get_sentiment()
 
     except Exception as e:
@@ -60,11 +72,12 @@ def pause_route():
     logger.info("Paused " + str(g.req_id))
     return jsonify(success=True)
 
-
+'''
 @app.route("/message")
 def pause_route():
     logger.info("Paused " + str(g.req_id))
     return jsonify(success=True)
+'''
 
 
 @app.route("/df_webhook", methods=['POST'])
@@ -76,31 +89,17 @@ def df_webhook():
     query = g.json['queryResult']
     pprint(query)
     intent = query['intent']['displayName']
-    if intent == 'Urgent Home - yes':
-        print("finding a home for " + str(g.req_id))
+    print("\n\n\nserving request with intent: " + intent)
 
+    if intent == 'homeless.1 - yes - profile':
         context = query['outputContexts'][0]
         params = context['parameters']
-
-        date = params['date']
-        location = params['location']['subadmin-area']
-
-        house = find_home(location, date)
-        msg = "we found a house at %s owned by %s to stay at %s" % (house['location'], house['name'], house['date'])
-
-        return jsonify(fulfillmentText=msg)
- 	if action == 'UrgentHome.UrgentHome-yes':
-
-        print("finding a home for " + str(g.req_id))
-        context = query['outputContexts'][0]
-        params = context['parameters']
-
-        date = params['date']
-        location = params['location']['subadmin-area']
-
-        house = find_home(location, date)
-        msg = "we found a house at %s owned by %s to stay at %s" % (house['location'], house['name'], house['date'])
-        return jsonify(fulfillmentText=msg)
+        print("\n\n\n\n\nAAAAAAAAAAAAAAAAAAAA - "+params['age.original'])
+        if int(params['age.original']) > 25:
+            msg = "Sorry but we can't help people over 25."
+            return jsonify(fulfillmentText=msg)
+        else:
+            return jsonify(g.json)
 
     if intent == "Companionship":
         # if no current chat room, create chat room
@@ -118,22 +117,30 @@ def df_webhook():
         msg = "we've matched you with someone you might like to talk to, go to " + url
         return jsonify(fulfillmentText=msg)
 
-        # if current chat room, connect and then clear current chat room
+
     if intent == "Mentorship":
         # if no current chat room, create chat room
 
         # if len(mentor_chatrooms) == 0:
         uid = uuid()
         url = "tlk.io/paula-" + str(uid)[:15]
-		message = client.messages.create(
+        message = client.messages.create(
 		    to=MENTOR_DEFAULT_NUMBER, 
 		    from_=TWILIO_DEFAULT_NUMBER,
-		    body="There is a person urgently in need. Please follow on to this chatroom: " + url + "!"
+		    body="There is a person urgently in need. Please follow on to this chatroom: " + url + " !"
 		    )
 
         msg = "we've created a chatroom " + url + " and we are waiting for a mentor to join, please follow the link"
-	    return jsonify(fulfillmentText=msg)
+        return jsonify(fulfillmentText=msg)
 
+
+    if intent == 'homeless.1 - yes - profile.2 - reference':
+        context = query['outputContexts'][-1]
+        params = context['parameters']
+        subject = "OMG YOU GOTTA READ THIS"
+        message = "Hi %s %s, we are contacting you about %s"%(params["ref-given-name"],params["ref-last-name"],params["given-name"])
+        s.sendmail("vincnttan@gmail.com",params["ref-email"], 'Subject: {}\n\n{}'.format(subject, message))
+        s.quit()
 
     return jsonify(g.json)
 
