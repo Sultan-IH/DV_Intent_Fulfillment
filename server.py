@@ -143,7 +143,7 @@ def df_webhook():
         message = "Dear DePaul, we have received a request by %s %s. These are the contact details: \nemail: %s \nphone number: %s"%(
             params["given-name"], params["last-name"], params['email'], params['phone-number'])
         s.sendmail("vincnttan@gmail.com", "bastapia@gmail.com", 'Subject: {}\n\n{}'.format(subject, message))
-        s.quit()
+        #s.quit()
         msg = "Great, we've contacted Depaul and we will get back to you shortly for your accomodatoin!"
         return jsonify(fulfillmentText=msg)
 
@@ -152,12 +152,14 @@ def df_webhook():
         url = "tlk.io/paula-" + str(uid)[:15]
         msg = "we've created a chatroom " + url + " and we are waiting for the mentor to join!"
 
-        context = query['outputContexts'][-1]
-        params = context['parameters']
+        output_params = query['outputContexts']
+        warning_context = [context for context in output_params if "warning-context" in context['name']][0]
+        warning_msg = warning_context['parameters']['warning_message']
+
         subject = "Mentor Chat Request"
-        message = "Hi Mentor, \n %s would like to speak to you! \n Here's the chatroom link:%s" % (params["given-name"], url)
+        message = "Hi Mentor, \n a person in need would like to speak to you! \n He said '%s' \n Here's the chatroom link:%s" %(warning_msg, url)
         s.sendmail("vincnttan@gmail.com", 'bastapia@gmail.com', 'Subject: {}\n\n{}'.format(subject, message))
-        s.quit()
+        #s.quit()
 
         return jsonify(fulfillmentText=msg)
 
@@ -169,21 +171,24 @@ def df_webhook():
             body="We think that someone might be at the risk of self harm, their last message was: " + g.query_text
         )
         msg = "Looks like youre going through something. Do you want to speak to a companion?"
-        intent = {'displayName': 'Sentiment Flag - yes',
-            'name': 'projects/dv-imagines/agent/intents/7d5bc33b-7318-4d53-8750-fe9cd4c6c1fb'}
-        oc = [{'lifespanCount': 1,
-                     'name': 'projects/dv-imagines/agent/sessions/e7f5a5d0-6ea6-ffee-3b06-69af09a5986f/contexts/sentimentflag-followup'}]
         temp_json = g.json
+
         print('\n\n PrINTING----')
         pprint(temp_json)
         followup = {
-        "name": "sentiment-event",
-        "languageCode": "en-US",
-        "parameters": {
-
-            }
+            "name": "sentiment-event",
+            "languageCode": "en-US",
+            "parameters": {"warning_message":g.query_text}
         }
-        return jsonify(fulfillmentText=msg, followupEventInput=followup)
+
+        oc = {
+          "name": "projects/dv-imagines/agent/sessions/e7f5a5d0-6ea6-ffee-3b06-69af09a5986f/contexts/warning-context",
+          "lifespanCount": 10,
+          "parameters": {"warning_message":g.query_text}
+        }
+
+
+        return jsonify(fulfillmentText=msg, followupEventInput=followup, outputContexts=[oc])
 
     return jsonify(g.json)
 
