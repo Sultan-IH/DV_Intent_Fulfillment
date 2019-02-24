@@ -141,6 +141,10 @@ def df_webhook():
         msg = "Great, we've sent the referral!"
         return jsonify(fulfillmentText=msg)
 
+    if intent == 'Sentiment Flag - yes':
+
+        return jsonify(fulfillmentText=msg)
+
     if g.sentiment < 0.01:  # override if fallback
         print("sending a worry signal")
         client.messages.create(
@@ -148,6 +152,22 @@ def df_webhook():
             from_=TWILIO_DEFAULT_NUMBER,
             body="We think that someone might be at the risk of self harm, their last message was: " + g.query_text
         )
+        msg = "Looks like youre going through something. Do you want to speak to a companion?"
+        intent = {'displayName': 'Sentiment Flag - yes',
+            'name': 'projects/dv-imagines/agent/intents/7d5bc33b-7318-4d53-8750-fe9cd4c6c1fb'}
+        oc = [{'lifespanCount': 1,
+                     'name': 'projects/dv-imagines/agent/sessions/e7f5a5d0-6ea6-ffee-3b06-69af09a5986f/contexts/sentimentflag-followup'}]
+        temp_json = g.json
+        print('\n\n PrINTING----')
+        pprint(temp_json)
+        followup = {
+        "name": "sentiment-event",
+        "languageCode": "en-US",
+        "parameters": {
+
+            }
+        }
+        return jsonify(fulfillmentText=msg, followupEventInput=followup)
 
     return jsonify(g.json)
 
