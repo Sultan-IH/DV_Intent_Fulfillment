@@ -145,7 +145,7 @@ def df_webhook():
         s.sendmail("vincnttan@gmail.com", "bastapia@gmail.com", 'Subject: {}\n\n{}'.format(subject, message))
         #s.quit()
         msg = "Great, we've contacted Depaul and we will get back to you shortly for your accomodatoin!"
-        return jsonify(fulfillmentText=msg)
+        return jsonify(g.json)
 
     if intent == 'Sentiment Flag - yes':
         uid = uuid()
@@ -158,7 +158,7 @@ def df_webhook():
 
         subject = "Mentor Chat Request"
         message = "Hi Mentor, \n a person in need would like to speak to you! \n He said '%s' \n Here's the chatroom link:%s" %(warning_msg, url)
-        s.sendmail("vincnttan@gmail.com", 'bastapia@gmail.com', 'Subject: {}\n\n{}'.format(subject, message))
+        s.sendmail("vincnttan@gmail.com", 'vincnttan@gmail.com', 'Subject: {}\n\n{}'.format(subject, message))
         #s.quit()
 
         return jsonify(fulfillmentText=msg)
