@@ -148,6 +148,16 @@ def df_webhook():
         return jsonify(fulfillmentText=msg)
 
     if intent == 'Sentiment Flag - yes':
+        uid = uuid()
+        url = "tlk.io/paula-" + str(uid)[:15]
+        msg = "we've created a chatroom " + url + " and we are waiting for the mentor to join!"
+
+        context = query['outputContexts'][-1]
+        params = context['parameters']
+        subject = "Mentor Chat Request"
+        message = "Hi Mentor, \n %s would like to speak to you! \n Here's the chatroom link:%s" % (params["given-name"], url)
+        s.sendmail("vincnttan@gmail.com", 'bastapia@gmail.com', 'Subject: {}\n\n{}'.format(subject, message))
+        s.quit()
 
         return jsonify(fulfillmentText=msg)
 
